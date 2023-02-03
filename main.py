@@ -1,4 +1,14 @@
+import itertools
+import re
 import sys
+
+
+def is_dict_subset(a: dict, b: dict) -> bool:
+    return set(a.items()).issubset(set(b.items()))
+
+
+def is_dict_disjoint(a: dict, b: dict) -> bool:
+    return set(a.items()).isdisjoint(set(b.items()))
 
 
 def matrix_combinations(matrix) -> list[dict]:
@@ -12,7 +22,52 @@ def matrix_combinations(matrix) -> list[dict]:
     instead. Note that the original matrix values will not be overwritten, but
     added matrix values can be overwritten.
     """
-    return []
+    includes = matrix.pop("include", [])
+    excludes = matrix.pop("exclude", [])
+
+    matrix_as_tuples = []
+    for var, values in matrix.items():
+        matrix_as_tuples.append(tuple((var, value) for value in values))
+
+    original_combinations = (
+        [dict(c) for c in itertools.product(*matrix_as_tuples)]
+        if matrix_as_tuples
+        else []
+    )
+
+    expanded_combinations = original_combinations
+    for include in includes:
+        overwrites_original = []
+        for combination in original_combinations:
+            overwrites = False
+            for var, value in include.items():
+                if var in combination and combination[var] != value:
+                    overwrites = True
+            overwrites_original.append(overwrites)
+
+        if all(overwrites_original):
+            # Add to combinations
+            expanded_combinations.append(include)
+        elif not any(overwrites_original):
+            # Merge with all
+            expanded_combinations = [
+                combination | include for combination in expanded_combinations
+            ]
+        else:
+            # Merge where overlaps
+            expanded_combinations = [
+                combination | include
+                if not is_dict_disjoint(combination, include)
+                else combination
+                for combination in expanded_combinations
+            ]
+
+    filtered_combinations = [
+        combination
+        for combination in expanded_combinations
+        if not any(is_dict_subset(exclude, combination) for exclude in excludes)
+    ]
+    return filtered_combinations
 
 
 def test_include_only():

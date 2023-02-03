@@ -19,10 +19,12 @@ def test_include_only():
     matrix = {
         "include": [
             {"a": 42},
+            {"a": "foo"},
         ]
     }
     expected = [
         {"a": 42},
+        {"a": "foo"},
     ]
     assert matrix_combinations(matrix) == expected
 

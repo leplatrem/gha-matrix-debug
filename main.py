@@ -104,6 +104,7 @@ if __name__ == "__main__":
 
     for name, job in content["jobs"].items():
         job_name = job.get("name", name)
+        interpolated = re.findall("\\$\\{\\{([^\\}]+)\\}\\}", job_name)
 
         matrix = job.get("strategy", {}).get("matrix")
         if not matrix:
@@ -112,4 +113,10 @@ if __name__ == "__main__":
         combinations = matrix_combinations(matrix)
 
         for combination in combinations:
-            print("-", combination)
+            for var in interpolated:
+                _, field = var.split(".")  # ${{ matrix.{var} }}
+                value = combination.get(field.strip(), "")
+                job_name = job_name.replace(f"${{{{{var}}}}}", str(value))
+            print(f"\n- {job_name}")
+            for var, value in combination.items():
+                print(f"  {var}: {value}")

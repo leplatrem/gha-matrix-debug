@@ -1,4 +1,17 @@
+import itertools
 import sys
+
+
+def has_overlap(a: dict, b: dict) -> bool:
+    a = set(a.items())
+    b = set(b.items())
+    return not a.isdisjoint(b)
+
+
+def is_subset(a: dict, b: dict) -> bool:
+    a = set(a.items())
+    b = set(b.items())
+    return a.issubset(b)
 
 
 def matrix_combinations(matrix) -> list[dict]:
@@ -12,7 +25,50 @@ def matrix_combinations(matrix) -> list[dict]:
     instead. Note that the original matrix values will not be overwritten, but
     added matrix values can be overwritten.
     """
-    return []
+    includes = matrix.pop("include", [])
+    excludes = matrix.pop("exclude", [])
+
+    dimensions = []
+    for var, values in matrix.items():
+        astuples = [(var, value) for value in values]
+        dimensions.append(astuples)
+
+    original_combinations = (
+        [dict(c) for c in itertools.product(*dimensions)] if dimensions else []
+    )
+
+    combinations = original_combinations
+
+    for include in includes:
+        overwrites_one = False
+        overwrites_all = True
+        for combination in original_combinations:
+            overwrites = False
+            for k, v in include.items():
+                if k in combination and combination[k] != v:
+                    overwrites = True
+            if overwrites:
+                overwrites_one = True
+            overwrites_all = overwrites_all and overwrites
+
+        if overwrites_all:
+            combinations.append(include)
+
+        elif not overwrites_one:
+            combinations = [c | include for c in combinations]
+
+        else:
+            combinations = [
+                c | include if has_overlap(c, include) else c for c in combinations
+            ]
+
+    filtered_combinations = [
+        c
+        for c in combinations
+        if not any(is_subset(exclude, c) for exclude in excludes)
+    ]
+
+    return filtered_combinations
 
 
 def test_include_only():
